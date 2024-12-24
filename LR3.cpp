@@ -127,6 +127,21 @@ public:
     }
 };
 
+class MatchHistory {
+private:
+    char winner[2];     // Победившая сторона 'W' или 'B'
+    int totalMoves;
+    char date[11];      // "YYYY-MM-DD"
+
+public:
+    // Метод для вывода информации о матче
+    void displayMatchHistory() {
+        std::cout << "Winner: " << winner << std::endl;
+        std::cout << "Total Moves: " << totalMoves << std::endl;
+        std::cout << "Date: " << date << std::endl;
+    }
+};
+
 int main() {
     setlocale(LC_ALL, "rus");
 
