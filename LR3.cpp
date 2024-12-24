@@ -1,146 +1,142 @@
 ﻿#include <iostream>
-#include <cmath>
 #include <string>
-#include <vector>
 
-#define RULES "Rules.txt"
-using namespace std;
+#define BOARD_SIZE 8
 
-class Rules {
-private:
-	string content;
+class ChessPiece {
 public:
-	Rules() {
-		FILE* fp = fopen(RULES, "r");
-		if (fp) {
-			char buffer[256];
-			while (fgets(buffer, sizeof(buffer), fp)) {
-				content += buffer;
-			}
-			fclose(fp);
-		}
-		else {
-			content = "Rules file not found.";
-		}
-	}
-	void showRules() const {
-		cout << content << endl;
-	}
+    std::string type; // Тип фигуры: "P", "N", "B", "R", "Q", "K"
+    char color;       // Цвет: 'W' или 'B'
+    int row, col;     // Текущие координаты фигуры
+
+    ChessPiece(const std::string& t = "", char c = ' ', int r = -1, int cl = -1)
+        : type(t), color(c), row(r), col(cl) {}
+
+    // Проверка допустимости хода (пока базовая)
+    virtual bool isValidMove(int targetRow, int targetCol) {
+        return targetRow >= 0 && targetRow < BOARD_SIZE &&
+            targetCol >= 0 && targetCol < BOARD_SIZE;
+    }
+
+    virtual ~ChessPiece() = default; // Виртуальный деструктор
 };
 
-class Player {
-private:
-	string name;
-	int score;
+class ChessBoard {
 public:
-	Player(const string& playerName) : name(playerName), score(0) {}
-	void increaseScore() { score++; }
-	int getScore() const { return score; }
-	string getName() const { return name; }
+    ChessPiece* board[BOARD_SIZE][BOARD_SIZE];
+
+    ChessBoard() {
+        for (int i = 0; i < BOARD_SIZE; ++i) {
+            for (int j = 0; j < BOARD_SIZE; ++j) {
+                board[i][j] = nullptr;
+            }
+        }
+    }
+
+    // Инициализация доски
+    void initializeBoard() {
+        for (int i = 0; i < BOARD_SIZE; ++i) {
+            for (int j = 0; j < BOARD_SIZE; ++j) {
+                board[i][j] = nullptr;
+            }
+        }
+        // Пример инициализации начальных позиций пешек
+        for (int j = 0; j < BOARD_SIZE; ++j) {
+            board[6][j] = new ChessPiece("P", 'W', 6, j); // Белые пешки
+            board[1][j] = new ChessPiece("P", 'B', 1, j); // Черные пешки
+        }
+    }
+
+    // Печать шахматной доски
+    void printBoard() {
+        std::cout << "  a b c d e f g h\n";
+        for (int i = 0; i < BOARD_SIZE; ++i) {
+            std::cout << 8 - i << " ";
+            for (int j = 0; j < BOARD_SIZE; ++j) {
+                if (board[i][j]) {
+                    std::cout << board[i][j]->type[0] << " ";
+                }
+                else {
+                    std::cout << ". ";
+                }
+            }
+            std::cout << "\n";
+        }
+    }
+
+    // Движение фигуры
+    bool movePiece(ChessPiece* piece, int targetRow, int targetCol) {
+        if (!piece || !piece->isValidMove(targetRow, targetCol)) {
+            return false;
+        }
+        if (board[targetRow][targetCol] && board[targetRow][targetCol]->color == piece->color) {
+            return false; // Нельзя ходить на свою фигуру
+        }
+        // Перемещаем фигуру
+        board[piece->row][piece->col] = nullptr;
+        if (board[targetRow][targetCol]) {
+            delete board[targetRow][targetCol]; // Удаляем съеденную фигуру
+        }
+        piece->row = targetRow;
+        piece->col = targetCol;
+        board[targetRow][targetCol] = piece;
+        return true;
+    }
+
+    ~ChessBoard() {
+        for (int i = 0; i < BOARD_SIZE; ++i) {
+            for (int j = 0; j < BOARD_SIZE; ++j) {
+                delete board[i][j];
+            }
+        }
+    }
 };
 
-class Field {
-private:
-	char pole[7][7];
+class ChessGame {
 public:
-	Field() {
-		for (int i = 0; i < 7; i++)
-			for (int j = 0; j < 7; j++)
-				pole[i][j] = '.';
-	}
-	void display() const {
-		for (int i = 0; i < 7; i++) {
-			for (int j = 0; j < 7; j++)
-				cout << pole[i][j] << ' ';
-			cout << endl;
-		}
-	}
-};
+    ChessBoard board;
+    char currentPlayer;
 
-class Figure {
-private:
-	string type;
-	string color;
-	int x, y;
-public:
-	Figure(const string& figType, const string& figColor, int posX, int posY)
-		: type(figType), color(figColor), x(posX), y(posY) {}
-	void move(int newX, int newY) {
-		x = newX;
-		y = newY;
-	}
-	void display() const {
-		cout << "Type: " << type << ", Color: " << color
-			<< ", Position: (" << x << ", " << y << ")\n";
-	}
-};
+    ChessGame() : currentPlayer('W') {}
 
-class MatchHistory {
-private:
-	string winner;
-	int moves;
-public:
-	MatchHistory(const string& winnerName, int moveCount) : winner(winnerName), moves(moveCount) {}
-	void displayHistory() const {
-		cout << "Winner: " << winner << ", Moves: " << moves << endl;
-	}
-};
+    void startGame() {
+        board.initializeBoard();
+        std::cout << "Начало игры.\n";
+        board.printBoard();
+    }
 
-class Score {
-private:
-	int blackScore;
-	int whiteScore;
-public:
-	Score() : blackScore(0), whiteScore(0) {}
-	void updateScore(const string& color) {
-		if (color == "Black")
-			blackScore++;
-		else if (color == "White")
-			whiteScore++;
-	}
-	void displayScore() const {
-		cout << "Black: " << blackScore << " | White: " << whiteScore << endl;
-	}
-};
-
-class Game {
-private:
-	Field field;
-	Player player1;
-	Player player2;
-	Rules rules;
-	vector<Figure> figures;
-public:
-	Game(const string& p1, const string& p2) : player1(p1), player2(p2) {}
-	void addFigure(const string& type, const string& color, int x, int y) {
-		figures.emplace_back(type, color, x, y);
-	}
-	void startGame() {
-		cout << "Starting game between " << player1.getName() << " and " << player2.getName() << endl;
-		rules.showRules();
-		field.display();
-		for (const auto& fig : figures) {
-			fig.display();
-		}
-	}
+    void makeMove(int startRow, int startCol, int targetRow, int targetCol) {
+        ChessPiece* piece = board.board[startRow][startCol];
+        if (!piece) {
+            std::cout << "Ошибка: фигура отсутствует в указанной позиции!\n";
+            return;
+        }
+        if (piece->color != currentPlayer) {
+            std::cout << "Ошибка: сейчас ходит игрок " << currentPlayer << "!\n";
+            return;
+        }
+        if (board.movePiece(piece, targetRow, targetCol)) {
+            std::cout << "Ход выполнен: " << piece->type << " на "
+                << char('a' + targetCol) << (8 - targetRow) << "\n";
+            currentPlayer = (currentPlayer == 'W') ? 'B' : 'W'; // Меняем игрока
+        }
+        else {
+            std::cout << "Ошибка: недопустимый ход!\n";
+        }
+        board.printBoard();
+    }
 };
 
 int main() {
-	// Работа с классами
-	Game chessGame("Alice", "Bob");
+    setlocale(LC_ALL, "rus");
 
-	chessGame.addFigure("Pawn", "White", 1, 2);
-	chessGame.addFigure("Knight", "Black", 2, 1);
+    ChessGame game;
+    game.startGame();
 
-	chessGame.startGame();
+    // Пример ходов
+    game.makeMove(6, 4, 4, 4); // Белая пешка e2-e4
+    game.makeMove(1, 4, 3, 4); // Черная пешка e7-e5
+    game.makeMove(7, 1, 5, 2); // Белый конь b1-c3
 
-	MatchHistory history("Alice", 42);
-	history.displayHistory();
-
-	Score gameScore;
-	gameScore.updateScore("White");
-	gameScore.updateScore("Black");
-	gameScore.displayScore();
-
-	return 0;
+    return 0;
 }
